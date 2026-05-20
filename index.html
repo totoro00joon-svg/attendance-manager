@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f8b7d" />
+    <title>근태 기록장</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="entry-panel" aria-labelledby="app-title">
+        <div class="title-row">
+          <div>
+            <p class="eyebrow">Attendance Log</p>
+            <h1 id="app-title">근태 기록장</h1>
+          </div>
+          <div class="today-pill" id="todayLabel"></div>
+        </div>
+
+        <form id="attendanceForm" class="record-form">
+          <label class="field">
+            <span>날짜</span>
+            <input id="workDate" type="date" required />
+          </label>
+
+          <div class="time-grid">
+            <fieldset class="time-field">
+              <legend>출근시간</legend>
+              <div class="wheel-row">
+                <select id="startHour" aria-label="출근 시"></select>
+                <span>:</span>
+                <select id="startMinute" aria-label="출근 분"></select>
+              </div>
+            </fieldset>
+
+            <fieldset class="time-field">
+              <legend>퇴근시간</legend>
+              <div class="wheel-row">
+                <select id="endHour" aria-label="퇴근 시"></select>
+                <span>:</span>
+                <select id="endMinute" aria-label="퇴근 분"></select>
+              </div>
+            </fieldset>
+          </div>
+
+          <label class="field">
+            <span>메모</span>
+            <input id="memo" type="text" maxlength="50" placeholder="예: 재택, 외근, 반차" />
+          </label>
+
+          <div class="button-row">
+            <button id="saveButton" class="primary" type="submit">기록 저장</button>
+            <button id="cancelEditButton" class="ghost" type="button" hidden>수정 취소</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="summary-panel" aria-label="근태 요약">
+        <div class="summary-card">
+          <span>이번 달 근무일</span>
+          <strong id="monthDays">0일</strong>
+        </div>
+        <div class="summary-card">
+          <span>이번 달 총 근무</span>
+          <strong id="monthHours">0시간</strong>
+        </div>
+        <div class="summary-card">
+          <span>평균 근무</span>
+          <strong id="avgHours">0시간</strong>
+        </div>
+      </section>
+
+      <section class="records-panel" aria-labelledby="records-title">
+        <div class="toolbar">
+          <div>
+            <h2 id="records-title">기록 관리</h2>
+            <p id="recordCount">저장된 기록 0개</p>
+          </div>
+          <div class="tool-actions">
+            <input id="searchInput" type="search" placeholder="날짜 또는 메모 검색" />
+            <button id="exportButton" class="ghost" type="button">CSV 내보내기</button>
+            <button id="clearButton" class="danger" type="button">전체 삭제</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>출근</th>
+                <th>퇴근</th>
+                <th>근무시간</th>
+                <th>메모</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="recordTable"></tbody>
+          </table>
+          <div id="emptyState" class="empty-state">아직 저장된 근태 기록이 없습니다.</div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
