@@ -21,6 +21,17 @@
           <div class="today-pill" id="todayLabel"></div>
         </div>
 
+        <section class="quick-panel" aria-label="빠른 근태 기록">
+          <div>
+            <p class="quick-label">오늘 기록</p>
+            <strong id="todayStatus">출근 전</strong>
+          </div>
+          <div class="quick-actions">
+            <button id="clockInButton" class="quick-button clock-in" type="button">출근 클릭</button>
+            <button id="clockOutButton" class="quick-button clock-out" type="button">퇴근 클릭</button>
+          </div>
+        </section>
+
         <form id="attendanceForm" class="record-form">
           <label class="field">
             <span>날짜</span>
@@ -48,8 +59,13 @@
           </div>
 
           <label class="field">
-            <span>메모</span>
-            <input id="memo" type="text" maxlength="50" placeholder="예: 재택, 외근, 반차" />
+            <span>근태 종류</span>
+            <select id="attendanceType">
+              <option value="정상출근">정상출근</option>
+              <option value="반반차">반반차</option>
+              <option value="반차">반차</option>
+              <option value="연차">연차</option>
+            </select>
           </label>
 
           <div class="button-row">
@@ -81,7 +97,7 @@
             <p id="recordCount">저장된 기록 0개</p>
           </div>
           <div class="tool-actions">
-            <input id="searchInput" type="search" placeholder="날짜 또는 메모 검색" />
+            <input id="searchInput" type="search" placeholder="날짜 또는 근태 종류 검색" />
             <button id="exportButton" class="ghost" type="button">CSV 내보내기</button>
             <button id="clearButton" class="danger" type="button">전체 삭제</button>
           </div>
@@ -95,7 +111,7 @@
                 <th>출근</th>
                 <th>퇴근</th>
                 <th>근무시간</th>
-                <th>메모</th>
+                <th>근태 종류</th>
                 <th>관리</th>
               </tr>
             </thead>

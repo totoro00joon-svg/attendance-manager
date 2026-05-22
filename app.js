@@ -1,4 +1,5 @@
-const STORAGE_KEY = "attendance-records-v2";
+const STORAGE_KEY = "attendance-records-v4";
+const DEFAULT_ATTENDANCE_TYPE = "정상출근";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -12,9 +13,12 @@ const startHour = document.querySelector("#startHour");
 const startMinute = document.querySelector("#startMinute");
 const endHour = document.querySelector("#endHour");
 const endMinute = document.querySelector("#endMinute");
-const memo = document.querySelector("#memo");
+const attendanceType = document.querySelector("#attendanceType");
 const saveButton = document.querySelector("#saveButton");
 const cancelEditButton = document.querySelector("#cancelEditButton");
+const clockInButton = document.querySelector("#clockInButton");
+const clockOutButton = document.querySelector("#clockOutButton");
+const todayStatus = document.querySelector("#todayStatus");
 const recordTable = document.querySelector("#recordTable");
 const emptyState = document.querySelector("#emptyState");
 const recordCount = document.querySelector("#recordCount");
@@ -38,6 +42,11 @@ function todayString() {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+function nowTime() {
+  const date = new Date();
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function makeTime(hour, minute) {
   return `${hour}:${minute}`;
 }
@@ -49,7 +58,7 @@ function fillTimeSelects() {
     endHour.add(option);
   }
 
-  for (let minute = 0; minute < 60; minute += 5) {
+  for (let minute = 0; minute < 60; minute += 1) {
     const option = new Option(pad(minute), pad(minute));
     startMinute.add(option.cloneNode(true));
     endMinute.add(option);
@@ -58,10 +67,25 @@ function fillTimeSelects() {
 
 function loadRecords() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const current = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (Array.isArray(current)) return normalizeRecords(current);
+
+    const oldKeys = ["attendance-records-v3", "attendance-records-v2", "attendance-records-v1"];
+    for (const key of oldKeys) {
+      const oldRecords = JSON.parse(localStorage.getItem(key));
+      if (Array.isArray(oldRecords)) return normalizeRecords(oldRecords);
+    }
   } catch {
     return [];
   }
+  return [];
+}
+
+function normalizeRecords(list) {
+  return list.map((record) => ({
+    ...record,
+    type: record.type || record.memo || DEFAULT_ATTENDANCE_TYPE,
+  }));
 }
 
 function saveRecords() {
@@ -69,11 +93,13 @@ function saveRecords() {
 }
 
 function minutesFromTime(time) {
+  if (!time) return null;
   const [hour, minute] = time.split(":").map(Number);
   return hour * 60 + minute;
 }
 
 function workMinutes(record) {
+  if (!record.start || !record.end) return 0;
   let minutes = minutesFromTime(record.end) - minutesFromTime(record.start);
   if (minutes < 0) minutes += 24 * 60;
   return minutes;
@@ -87,13 +113,19 @@ function formatDuration(minutes) {
   return `${hours}시간 ${mins}분`;
 }
 
+function setTimeControls(start, end) {
+  const [sHour, sMinute] = start.split(":");
+  const [eHour, eMinute] = end.split(":");
+  startHour.value = sHour;
+  startMinute.value = sMinute;
+  endHour.value = eHour;
+  endMinute.value = eMinute;
+}
+
 function setDefaultForm() {
   workDate.value = todayString();
-  startHour.value = "09";
-  startMinute.value = "00";
-  endHour.value = "18";
-  endMinute.value = "00";
-  memo.value = "";
+  setTimeControls("09:00", "18:00");
+  attendanceType.value = DEFAULT_ATTENDANCE_TYPE;
   editingId = null;
   saveButton.textContent = "기록 저장";
   cancelEditButton.hidden = true;
@@ -105,12 +137,16 @@ function currentFormRecord() {
     date: workDate.value,
     start: makeTime(startHour.value, startMinute.value),
     end: makeTime(endHour.value, endMinute.value),
-    memo: memo.value.trim(),
+    type: attendanceType.value,
   };
 }
 
+function getTodayRecord() {
+  return records.find((record) => record.date === todayString());
+}
+
 function sortRecords(list) {
-  return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.start.localeCompare(a.start));
+  return [...list].sort((a, b) => b.date.localeCompare(a.date) || (b.start || "").localeCompare(a.start || ""));
 }
 
 function filteredRecords() {
@@ -118,9 +154,30 @@ function filteredRecords() {
   if (!keyword) return sortRecords(records);
   return sortRecords(
     records.filter((record) => {
-      return record.date.includes(keyword) || record.memo.toLowerCase().includes(keyword);
+      return record.date.includes(keyword) || (record.type || "").toLowerCase().includes(keyword);
     }),
   );
+}
+
+function renderTodayStatus() {
+  const record = getTodayRecord();
+  if (!record) {
+    todayStatus.textContent = "출근 전";
+    clockInButton.disabled = false;
+    clockOutButton.disabled = false;
+    return;
+  }
+
+  if (record.start && record.end) {
+    todayStatus.textContent = `출근 ${record.start} · 퇴근 ${record.end}`;
+    clockInButton.disabled = false;
+    clockOutButton.disabled = false;
+    return;
+  }
+
+  todayStatus.textContent = `출근 ${record.start} · 퇴근 전`;
+  clockInButton.disabled = false;
+  clockOutButton.disabled = false;
 }
 
 function renderRecords() {
@@ -131,10 +188,10 @@ function renderRecords() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${record.date}</td>
-      <td>${record.start}</td>
-      <td>${record.end}</td>
-      <td>${formatDuration(workMinutes(record))}</td>
-      <td>${record.memo || "-"}</td>
+      <td>${record.start || "-"}</td>
+      <td>${record.end || "-"}</td>
+      <td>${record.start && record.end ? formatDuration(workMinutes(record)) : "-"}</td>
+      <td>${record.type || DEFAULT_ATTENDANCE_TYPE}</td>
       <td>
         <div class="row-actions">
           <button class="ghost" type="button" data-action="edit" data-id="${record.id}">수정</button>
@@ -148,13 +205,15 @@ function renderRecords() {
   emptyState.classList.toggle("hidden", list.length > 0);
   recordCount.textContent = `저장된 기록 ${records.length}개`;
   renderSummary();
+  renderTodayStatus();
 }
 
 function renderSummary() {
   const currentMonth = todayString().slice(0, 7);
   const monthRecords = records.filter((record) => record.date.startsWith(currentMonth));
-  const total = monthRecords.reduce((sum, record) => sum + workMinutes(record), 0);
-  const average = monthRecords.length ? Math.round(total / monthRecords.length) : 0;
+  const completedRecords = monthRecords.filter((record) => record.start && record.end);
+  const total = completedRecords.reduce((sum, record) => sum + workMinutes(record), 0);
+  const average = completedRecords.length ? Math.round(total / completedRecords.length) : 0;
 
   monthDays.textContent = `${monthRecords.length}일`;
   monthHours.textContent = formatDuration(total);
@@ -181,14 +240,49 @@ function upsertRecord(record) {
   return true;
 }
 
+function quickRecord(type) {
+  const date = todayString();
+  const time = nowTime();
+  const record = getTodayRecord();
+
+  if (type === "in") {
+    if (record?.start) {
+      const replace = confirm(`오늘 출근시간이 이미 ${record.start}로 기록되어 있습니다. ${time}로 바꿀까요?`);
+      if (!replace) return;
+      record.start = time;
+    } else if (record) {
+      record.start = time;
+    } else {
+      records.push({ id: crypto.randomUUID(), date, start: time, end: "", type: DEFAULT_ATTENDANCE_TYPE });
+    }
+  }
+
+  if (type === "out") {
+    if (!record) {
+      const create = confirm("오늘 출근 기록이 없습니다. 퇴근시간만 먼저 기록할까요?");
+      if (!create) return;
+      records.push({ id: crypto.randomUUID(), date, start: "", end: time, type: DEFAULT_ATTENDANCE_TYPE });
+    } else if (record.end) {
+      const replace = confirm(`오늘 퇴근시간이 이미 ${record.end}로 기록되어 있습니다. ${time}로 바꿀까요?`);
+      if (!replace) return;
+      record.end = time;
+    } else {
+      record.end = time;
+    }
+  }
+
+  saveRecords();
+  setDefaultForm();
+  renderRecords();
+}
+
 function editRecord(id) {
   const record = records.find((item) => item.id === id);
   if (!record) return;
   editingId = id;
   workDate.value = record.date;
-  [startHour.value, startMinute.value] = record.start.split(":");
-  [endHour.value, endMinute.value] = record.end.split(":");
-  memo.value = record.memo;
+  setTimeControls(record.start || "09:00", record.end || "18:00");
+  attendanceType.value = record.type || record.memo || DEFAULT_ATTENDANCE_TYPE;
   saveButton.textContent = "수정 저장";
   cancelEditButton.hidden = false;
   workDate.focus();
@@ -210,13 +304,13 @@ function exportCsv() {
     return;
   }
 
-  const headers = ["날짜", "출근시간", "퇴근시간", "근무시간", "메모"];
+  const headers = ["날짜", "출근시간", "퇴근시간", "근무시간", "근태종류"];
   const rows = sortRecords(records).map((record) => [
     record.date,
-    record.start,
-    record.end,
-    formatDuration(workMinutes(record)),
-    record.memo,
+    record.start || "",
+    record.end || "",
+    record.start && record.end ? formatDuration(workMinutes(record)) : "",
+    record.type || DEFAULT_ATTENDANCE_TYPE,
   ]);
   const csv = [headers, ...rows]
     .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
@@ -247,6 +341,8 @@ recordTable.addEventListener("click", (event) => {
   if (action === "delete") deleteRecord(id);
 });
 
+clockInButton.addEventListener("click", () => quickRecord("in"));
+clockOutButton.addEventListener("click", () => quickRecord("out"));
 cancelEditButton.addEventListener("click", setDefaultForm);
 searchInput.addEventListener("input", renderRecords);
 exportButton.addEventListener("click", exportCsv);
