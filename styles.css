@@ -103,7 +103,59 @@ h2 {
 .record-form {
   display: grid;
   gap: 18px;
+  margin-top: 18px;
+}
+
+.quick-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1.3fr);
+  gap: 16px;
+  align-items: center;
   margin-top: 28px;
+  padding: 18px;
+  border: 1px solid rgba(15, 139, 125, 0.22);
+  border-radius: 8px;
+  background: #f2fbf8;
+}
+
+.quick-label {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+#todayStatus {
+  display: block;
+  color: var(--ink);
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  line-height: 1.2;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quick-button {
+  min-height: 82px;
+  color: #fff;
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+  box-shadow: 0 12px 24px rgba(32, 35, 40, 0.12);
+}
+
+.clock-in {
+  background: var(--mint);
+}
+
+.clock-out {
+  background: var(--blue);
+}
+
+.quick-button:disabled {
+  cursor: default;
+  opacity: 0.7;
 }
 
 .field,
@@ -120,6 +172,7 @@ h2 {
 }
 
 .field input,
+.field select,
 .tool-actions input,
 .wheel-row select {
   min-height: 46px;
@@ -130,6 +183,7 @@ h2 {
 }
 
 .field input,
+.field select,
 .tool-actions input {
   width: 100%;
   padding: 0 14px;
@@ -322,7 +376,12 @@ tr:last-child td {
   }
 
   .time-grid,
+  .quick-panel,
   .summary-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
     grid-template-columns: 1fr;
   }
 
